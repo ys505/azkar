@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>موقع القرآن والأذكار والأدعية التجريبي</title>
+<style>
+:root {
+  --bg:#f7fafc;--card:#fff;--text:#1e293b;--accent:#0ea5a4;--muted:#64748b;
+}
+[data-theme="dark"] {
+  --bg:#0b1220;--card:#081024;--text:#f8fafc;--accent:#22d3ee;--muted:#94a3b8;
+}
+body {margin:0;font-family:'Noto Naskh Arabic',system-ui;background:var(--bg);color:var(--text);direction:rtl;line-height:1.7;}
+.container {max-width:960px;margin:auto;padding:16px;}
+header {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+h1 {margin:0;font-size:22px;}
+nav{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+nav button{background:var(--accent);border:none;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+nav button:hover{opacity:.9}
+.card {background:var(--card);border-radius:14px;padding:16px;margin-top:14px;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+.small{font-size:13px;color:var(--muted)}
+.azkar-grid,.dua-grid,.quran-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.zikr-box,.dua-box,.surah-box{padding:10px;border-radius:10px;background:rgba(0,0,0,0.03);cursor:pointer;text-align:center}
+.zikr-box:hover,.dua-box:hover,.surah-box:hover{background:rgba(14,165,164,0.1)}
+#popup{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:100}
+.popup-content{background:var(--card);color:var(--text);padding:20px;border-radius:12px;width:90%;max-width:500px;max-height:80%;overflow:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.popup-content h3{margin-top:0;text-align:center}
+.popup-actions{display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="container" id="app" data-theme="light">
+<header>
+<h1>🕌 النسخة التجريبية: القرآن والأذكار والأدعية</h1>
+<div style="display:flex;gap:8px;align-items:center">
+<label class="small">الوضع:</label>
+<select id="themeSwitch">
+<option value="light">نهاري</option>
+<option value="dark">ليلي</option>
+</select>
+</div>
+</header>
+
+<nav>
+<button onclick="showSection('quran')">📖 القرآن الكريم</button>
+<button onclick="showSection('azkar')">📿 الأذكار</button>
+<button onclick="showSection('dua')">🙏 الأدعية</button>
+</nav>
+
+<section class="card" id="quran">
+<h3>سور القرآن الأولى</h3>
+<div class="quran-grid" id="quranGrid"></div>
+</section>
+
+<section class="card" id="azkar" style="display:none">
+<h3>📖 الأذكار</h3>
+<div class="azkar-grid" id="azkarGrid"></div>
+</section>
+
+<section class="card" id="dua" style="display:none">
+<h3>🙏 الأدعية</h3>
+<div class="dua-grid" id="duaGrid"></div>
+</section>
+
+<footer>💖 نسخة تجريبية — يمكن تطويرها لاحقًا لإضافة باقي السور والأدعية.</footer>
+</div>
+
+<div id="popup">
+<div class="popup-content">
+<h3 id="popupTitle"></h3>
+<div id="popupText" style="white-space:pre-line"></div>
+<div class="popup-actions">
+<button id="listenBtn">🔊 استماع</button>
+<button id="doneBtn" class="muted-btn">✅ تم القراءة</button>
+<button id="closeBtn">إغلاق</button>
+</div>
+</div>
+</div>
+
+<script>
+function showSection(id){
+document.querySelectorAll('section.card').forEach(s=>s.style.display='none');
+document.getElementById(id).style.display='block';
+}
+showSection('quran');
+
+const app=document.getElementById('app');
+const themeSwitch=document.getElementById('themeSwitch');
+themeSwitch.value=localStorage.getItem('theme')||'light';
+app.setAttribute('data-theme',themeSwitch.value);
+themeSwitch.onchange=()=>{app.setAttribute('data-theme',themeSwitch.value);localStorage.setItem('theme',themeSwitch.value)};
+
+// بيانات سور القرآن التجريبية
+const quran = [
+{title:'الفاتحة', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3'},
+{title:'البقرة', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/2.mp3'},
+{title:'آل عمران', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/3.mp3'}
+];
+const quranGrid=document.getElementById('quranGrid');
+quran.forEach((s,i)=>{
+let box=document.createElement('div');
+box.className='surah-box';
+box.textContent=s.title;
+box.onclick=()=>openPopupSection(s.title,'يمكنك الاستماع إلى السورة.',s.sound);
+quranGrid.appendChild(box);
+});
+
+// بيانات الأذكار
+const azkarData = [
+{cat:'أذكار الصباح', text:'اللّهـمّ أَنْتَ رَبِّي ...', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3'},
+{cat:'أذكار المساء', text:'أَمْسَيْنَا وَأَمْسَى ...', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/2.mp3'}
+];
+const azkarGrid=document.getElementById('azkarGrid');
+azkarData.forEach((z,i)=>{
+let box=document.createElement('div');
+box.className='zikr-box';
+box.textContent=z.cat;
+box.onclick=()=>openPopupSection(z.cat,z.text,z.sound);
+azkarGrid.appendChild(box);
+});
+
+// بيانات الأدعية
+const duaData = [
+{cat:'دعاء السفر', text:'اللهم أنت الصاحب في السفر ...', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3'},
+{cat:'دعاء المرض', text:'اللهم اشف مرضانا ...', sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/2.mp3'}
+];
+const duaGrid=document.getElementById('duaGrid');
+duaData.forEach((d,i)=>{
+let box=document.createElement('div');
+box.className='dua-box';
+box.textContent=d.cat;
+box.onclick=()=>openPopupSection(d.cat,d.text,d.sound);
+duaGrid.appendChild(box);
+});
+
+// نافذة popup
+const popup=document.getElementById('popup');
+const titleEl=document.getElementById('popupTitle');
+const textEl=document.getElementById('popupText');
+const listenBtn=document.getElementById('listenBtn');
+const doneBtn=document.getElementById('doneBtn');
+const closeBtn=document.getElementById('closeBtn');
+let currentAudio=new Audio();
+function openPopupSection(title,text,audioSrc){
+titleEl.textContent=title;
+textEl.textContent=text;
+currentAudio.src=audioSrc;
+popup.style.display='flex';
+}
+closeBtn.onclick=()=>popup.style.display='none';
+listenBtn.onclick=()=>currentAudio.play();
+doneBtn.onclick=()=>{alert('تم تسجيل القراءة');popup.style.display='none'};
+</script>
+</body>
+</html>
