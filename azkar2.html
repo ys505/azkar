@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>موقع الأذكار والتذكير بالصلاة</title>
+<style>
+:root {
+  --bg:#f7fafc;--card:#fff;--text:#1e293b;--accent:#0ea5a4;--muted:#64748b;
+}
+[data-theme="dark"] {
+  --bg:#0b1220;--card:#081024;--text:#f8fafc;--accent:#22d3ee;--muted:#94a3b8;
+}
+body {
+  margin:0;font-family:'Noto Naskh Arabic',system-ui;background:var(--bg);
+  color:var(--text);direction:rtl;line-height:1.7;
+}
+.container {max-width:960px;margin:auto;padding:16px;}
+header {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+h1 {margin:0;font-size:22px;}
+.card {
+  background:var(--card);border-radius:14px;padding:16px;margin-top:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
+button {
+  background:var(--accent);border:none;color:#fff;padding:8px 12px;
+  border-radius:8px;cursor:pointer;font-size:14px;
+}
+button:hover{opacity:.9}
+.muted-btn {
+  background:transparent;border:1px solid #ccc;color:var(--muted);
+}
+.small{font-size:13px;color:var(--muted)}
+footer{text-align:center;margin-top:20px;color:var(--muted);font-size:13px}
+.azkar-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.zikr-box{padding:10px;border-radius:10px;background:rgba(0,0,0,0.03);cursor:pointer;text-align:center}
+.zikr-box:hover{background:rgba(14,165,164,0.1)}
+#popup{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);
+  display:none;align-items:center;justify-content:center;z-index:100;
+}
+.popup-content{
+  background:var(--card);color:var(--text);padding:20px;border-radius:12px;
+  width:90%;max-width:500px;max-height:80%;overflow:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+.popup-content h3{margin-top:0;text-align:center;}
+.popup-actions{display:flex;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px}
+.pray-times{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.pt-item{padding:8px;border-radius:10px;background:rgba(0,0,0,0.04);display:flex;justify-content:space-between}
+.tasbih{display:flex;justify-content:space-between;align-items:center}
+.counter{background:rgba(0,0,0,0.08);padding:4px 8px;border-radius:8px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container" id="app" data-theme="light">
+<header>
+  <h1>🕋 الأذكار والتذكير بالصلاة</h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <label class="small">الوضع:</label>
+    <select id="themeSwitch">
+      <option value="light">نهاري</option>
+      <option value="dark">ليلي</option>
+    </select>
+  </div>
+</header>
+
+<section class="card">
+  <h3>أوقات الصلاة</h3>
+  <div id="nextPrayer" class="small">جاري تحديد موقعك...</div>
+  <div class="pray-times" id="timesList"></div>
+</section>
+
+<section class="card">
+  <h3>📖 الأذكار</h3>
+  <div class="azkar-grid" id="azkarGrid"></div>
+</section>
+
+<section class="card">
+  <h3>📿 عداد التسبيح</h3>
+  <div class="tasbih">
+    <div>
+      <div id="tasbihText" style="font-size:20px">سبحان الله</div>
+      <div class="small">اضغط على العبارة لتغييرها</div>
+    </div>
+    <div style="text-align:center">
+      <div id="tasbihCount" class="counter">0</div><br>
+      <button id="tasbihBtn">+1</button>
+      <button id="resetTasbih" class="muted-btn">إعادة</button>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h3>سجل الصلوات</h3>
+  <div id="prayLog" class="small">لا يوجد سجل بعد.</div>
+</section>
+
+<footer>💖 تصميم بسيط — يمكنك نشر هذا الملف عبر GitHub Pages أو Netlify مجانًا.</footer>
+</div>
+
+<!-- نافذة قراءة الذكر -->
+<div id="popup">
+  <div class="popup-content">
+    <h3 id="popupTitle"></h3>
+    <div id="popupText" style="white-space:pre-line"></div>
+    <div class="popup-actions">
+      <button id="listenBtn">🔊 استماع</button>
+      <button id="doneBtn" class="muted-btn">✅ تم القراءة</button>
+      <button id="closeBtn">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const azkar = [
+  {cat:'أذكار الصباح', text:`اللّهـمّ أَنْتَ رَبِّي لا إلهَ إلاّ أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ ...`, sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3'},
+  {cat:'أذكار المساء', text:`أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ ...`, sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/2.mp3'},
+  {cat:'أذكار النوم', text:`بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي ...`, sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/3.mp3'},
+  {cat:'أذكار بعد الصلاة', text:`أستغفر الله، أستغفر الله، أستغفر الله. اللهم أنت السلام ومنك السلام ...`, sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/4.mp3'},
+  {cat:'أذكار الاستغفار', text:`أستغفر الله العظيم الذي لا إله إلا هو الحي القيوم وأتوب إليه.`, sound:'https://cdn.islamic.network/quran/audio/128/ar.alafasy/5.mp3'}
+];
+
+// الوضع الليلي
+const app=document.getElementById('app');
+const themeSwitch=document.getElementById('themeSwitch');
+themeSwitch.value=localStorage.getItem('theme')||'light';
+app.setAttribute('data-theme',themeSwitch.value);
+themeSwitch.onchange=()=>{app.setAttribute('data-theme',themeSwitch.value);localStorage.setItem('theme',themeSwitch.value)};
+
+// عرض الأذكار
+const grid=document.getElementById('azkarGrid');
+azkar.forEach((z,i)=>{
+  const box=document.createElement('div');
+  box.className='zikr-box';
+  box.textContent=z.cat;
+  box.onclick=()=>openPopup(i);
+  grid.appendChild(box);
+});
+
+// نافذة القراءة
+const popup=document.getElementById('popup');
+const titleEl=document.getElementById('popupTitle');
+const textEl=document.getElementById('popupText');
+const listenBtn=document.getElementById('listenBtn');
+const doneBtn=document.getElementById('doneBtn');
+const closeBtn=document.getElementById('closeBtn');
+let currentIndex=0;
+let audio=new Audio();
+
+function openPopup(i){
+  currentIndex=i;
+  const z=azkar[i];
+  titleEl.textContent=z.cat;
+  textEl.textContent=z.text;
+  popup.style.display='flex';
+  audio.src=z.sound;
+}
+closeBtn.onclick=()=>popup.style.display='none';
+listenBtn.onclick=()=>audio.play();
+doneBtn.onclick=()=>{
+  const key='read_'+currentIndex;
+  const val=parseInt(localStorage.getItem(key)||'0')+1;
+  localStorage.setItem(key,val);
+  alert('جزاك الله خيرًا! تم تسجيل قراءتك.');
+};
+
+// تسبيح
+const phrases=['سبحان الله','الحمد لله','الله أكبر','لا إله إلا الله'];
+let idx=0,count=parseInt(localStorage.getItem('tasbih')||'0');
+const txt=document.getElementById('tasbihText');
+const cnt=document.getElementById('tasbihCount');
+txt.onclick=()=>{idx=(idx+1)%phrases.length;txt.textContent=phrases[idx]};
+cnt.textContent=count;
+document.getElementById('tasbihBtn').onclick=()=>{count++;cnt.textContent=count;localStorage.setItem('tasbih',count)};
+document.getElementById('resetTasbih').onclick=()=>{count=0;cnt.textContent=0;localStorage.setItem('tasbih',0)};
+
+// أوقات الصلاة
+async function getPrayerTimes(lat,lon){
+  const ts=Math.floor(Date.now()/1000);
+  const r=await fetch(`https://api.aladhan.com/v1/timings/${ts}?latitude=${lat}&longitude=${lon}&method=2`);
+  const j=await r.json();return j.data.timings;
+}
+function arabic(k){return{Fajr:'الفجر',Sunrise:'الشروق',Dhuhr:'الظهر',Asr:'العصر',Maghrib:'المغرب',Isha:'العشاء'}[k]||k}
+function to24(t){return t.split(' ')[0]+':00'}
+function diffText(ms){const s=Math.floor(ms/1000);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);return`${h} ساعة ${m} دقيقة`}
+async function load(lat,lon){
+  const times=await getPrayerTimes(lat,lon);
+  const list=document.getElementById('timesList');
+  list.innerHTML='';
+  const order=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+  order.forEach(k=>{
+    const div=document.createElement('div');
+    div.className='pt-item';
+    div.innerHTML=`<span>${arabic(k)}</span><span>${times[k]}</span>`;
+    div.onclick=()=>markPrayer(arabic(k));
+    list.appendChild(div);
+  });
+  const now=new Date();const today=now.toLocaleDateString('en-CA');
+  let nextN='',nextT=null;
+  for(let k of order){if(k==='Sunrise')continue;const dt=new Date(today+'T'+to24(times[k]));if(dt>now){nextN=arabic(k);nextT=dt;break}}
+  if(!nextT){const tmr=new Date();tmr.setDate(now.getDate()+1);nextT=new Date(tmr.toLocaleDateString('en-CA')+'T'+to24(times['Fajr']));nextN='الفجر'}
+  document.getElementById('nextPrayer').innerHTML=`الصلاة القادمة: <b>${nextN}</b> بعد ${diffText(nextT-now)}`;
+}
+function markPrayer(name){
+  const log=JSON.parse(localStorage.getItem('prayLog')||'[]');
+  log.push({name,at:new Date().toLocaleString()});
+  localStorage.setItem('prayLog',JSON.stringify(log));
+  renderLog();alert('تم تسجيل '+name);
+}
+function renderLog(){
+  const logs=JSON.parse(localStorage.getItem('prayLog')||'[]');
+  const div=document.getElementById('prayLog');
+  if(!logs.length)return div.textContent='لا يوجد سجل بعد.';
+  div.innerHTML='<ul style="padding-right:18px">'+logs.slice(-10).reverse().map(l=>`<li>${l.name} — ${l.at}</li>`).join('')+'</ul>';
+}
+renderLog();
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(p=>load(p.coords.latitude,p.coords.longitude),
+    ()=>load(21.4225,39.8262)); // مكة fallback
+}else load(21.4225,39.8262);
+</script>
+</body>
+</html>
